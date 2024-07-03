@@ -1,0 +1,68 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* 수직 가운데 정렬 */
+  justify-content: center; /* 수평 가운데 정렬 */
+  min-height: 100vh; /* 최소한 화면 높이만큼의 높이를 가지도록 설정 */
+  background-color: #fff;
+}
+
+.main {
+  background-color: white;
+  width: 480px;
+  height: 100dvh;
+  margin: auto; /* 자동으로 중앙 정렬 */
+  flex: 1;
+}
+
+.bottomSectionWrapper {
+  background-color: white;
+  height: 70px;
+  width: 480px;
+  margin: auto; /* 자동으로 중앙 정렬 */
+}
+
+.bottomSectionInner {
+  height: inherit;
+  width: inherit;
+  display: flex;
+  justify-content: center;
+}
+
+.nav {
+  width: inherit;
+  display: flex;
+  justify-content: center;
+  border-color: rgb(239, 243, 244);
+  border-top-width: 2px;
+  border-bottom-width: 2px;
+  border-top-style: solid;
+  border-bottom-style: solid;
+}
+
+.nav li {
+  list-style-type: none;
+  margin: 0 10px;
+  flex: 1;
+  text-align: center;
+}
+
+/* 모바일 화면에 대한 스타일 */
+@media (min-width: 300px) and (max-width: 767px) {
+  .main {
+    width: 100dvw; 
+    height: auto; 
+    margin: 0; 
+  }
+
+  .bottomSectionWrapper {
+    width: 100%; 
+    height: auto; 
+    margin: 0; 
+  }
+
+  .nav li {
+    margin: 5px; 
+  }
+}
+

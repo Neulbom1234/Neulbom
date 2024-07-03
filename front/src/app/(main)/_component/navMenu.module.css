@@ -1,0 +1,6 @@
+.navPill {
+  display: inline-flex;
+  height: 50px;
+  padding: 12px;
+  align-items: center;
+}
