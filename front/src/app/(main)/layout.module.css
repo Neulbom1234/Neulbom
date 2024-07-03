@@ -7,26 +7,13 @@
   background-color: #fff;
 }
 
-.main {
-  background-color: white;
-  width: 480px;
-  height: 100dvh;
-  margin: auto; /* 자동으로 중앙 정렬 */
-  flex: 1;
-}
-
 .bottomSectionWrapper {
   background-color: white;
-  height: 70px;
-  width: 480px;
-  margin: auto; /* 자동으로 중앙 정렬 */
 }
 
 .bottomSectionInner {
   height: inherit;
   width: inherit;
-  display: flex;
-  justify-content: center;
 }
 
 .nav {
@@ -42,27 +29,36 @@
 
 .nav li {
   list-style-type: none;
-  margin: 0 10px;
   flex: 1;
+  margin: 5px;
   text-align: center;
 }
 
 /* 모바일 화면에 대한 스타일 */
-@media (min-width: 300px) and (max-width: 767px) {
+@media all and (min-width: 300px) {
   .main {
+    background-color: aqua;
+    width: 100dvw; 
+    height: 100dvh;
+    flex: 1;
+  }
+
+  .bottomSectionWrapper {
     width: 100dvw; 
     height: auto; 
     margin: 0; 
   }
 
-  .bottomSectionWrapper {
-    width: 100%; 
-    height: auto; 
-    margin: 0; 
+
+}
+
+@media all and (min-width: 767px) {
+  .main {
+    width: 767px;
   }
 
-  .nav li {
-    margin: 5px; 
+  .bottomSectionWrapper {
+    width: 767px;
   }
 }
 
