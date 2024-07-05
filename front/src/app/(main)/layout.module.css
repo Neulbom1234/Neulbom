@@ -32,7 +32,7 @@
   display: flex;
   justify-content: center;
   border-color: rgb(239, 243, 244);
-  border-width: 2px 2px 0px 2px;
+  border-width: 1px 1px 0px 1px;
   border-style: solid;
 }
 
@@ -51,7 +51,7 @@
     width: 100dvw; 
     flex: 1;
     border-color: rgb(239, 243, 244);
-    border-width: 0px 2px 0px 2px;
+    border-width: 0px 1px 0px 1px;
     border-style: solid;
   }
 
@@ -64,12 +64,12 @@
 
 }
 
-@media all and (min-width: 600px) {
+@media all and (min-width: 602px) {
   .main {
-    width: 600px;
+    width: 602px;
   }
 
   .bottomSectionWrapper {
-    width: 600px;
+    width: 602px;
   }
 }

@@ -28,17 +28,23 @@ export default function Post() {
   target.Images.push(
     {imgageId: 1, link: faker.image.urlLoremFlickr()},
   )
+  //card
+  //cover -> img
+  //body -> meta -> title, description
 
   return (
     <>
-      <Card
-        className={style.card}
-        hoverable
-        cover={<img src={target.Images[0]?.link} alt="example"/>}
-        >
-        <Meta title="리프컷" description="쎄임|한남동"/>
-      </Card>
+      <div className={style.card}>
+        <div className={style.cover}>
+          <img src={target.Images[0]?.link} alt=""/>
+        </div>
+        <div className={style.body}>
+          <div className={style.meta}>
+            <div className={style.title}>리프펌</div>
+            <div className={style.description}>쎄임|서울특별시 용산구</div>
+          </div>
+        </div>
+      </div>
     </>
   )
-
 }

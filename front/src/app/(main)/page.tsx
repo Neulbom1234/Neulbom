@@ -13,19 +13,6 @@ export default function Home() {
         </div>
         <div className={style.postsWrapper}>
           <Post/>
-          <Post/>
-          <Post/>
-          <Post/>
-          <Post/>
-          <Post/>
-          <Post/>
-          <Post/>
-          <Post/>
-          <Post/>
-          <Post/>
-          <Post/>
-          <Post/>
-          <Post/>
         </div>
       </div>
     )
