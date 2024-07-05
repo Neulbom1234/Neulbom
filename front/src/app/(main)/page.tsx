@@ -1,5 +1,6 @@
 import style from "@/app/(main)/home.module.css"
 import Link from "next/link"
+import Post from "./_component/Post"
 
 export default function Home() {
     return (
@@ -10,7 +11,22 @@ export default function Home() {
           </div>
           <Link href="/login" className={style.loginButton}>로그인</Link>
         </div>
-        메인 페이지
+        <div className={style.postsWrapper}>
+          <Post/>
+          <Post/>
+          <Post/>
+          <Post/>
+          <Post/>
+          <Post/>
+          <Post/>
+          <Post/>
+          <Post/>
+          <Post/>
+          <Post/>
+          <Post/>
+          <Post/>
+          <Post/>
+        </div>
       </div>
     )
   }

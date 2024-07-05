@@ -2,8 +2,20 @@
   display: flex;
   flex-direction: column;
   align-items: center; /* 수직 가운데 정렬 */
-  min-height: 100vh; /* 최소한 화면 높이만큼의 높이를 가지도록 설정 */
+  height: 100vh; /* 최소한 화면 높이만큼의 높이를 가지도록 설정 */
   background-color: #fff;
+}
+
+.main::-webkit-scrollbar { /*웹킷 기반 브라우저(chrome, safari등)*/
+  display: none;
+}
+
+.main { /* 파이어폭스 */
+  scrollbar-width: none; /* Firefox */
+}
+
+.main { /* 파이어폭스 구체적인 설정 */
+  -ms-overflow-style: none; /* IE and Edge */
 }
 
 .bottomSectionWrapper {
@@ -22,10 +34,6 @@
   border-color: rgb(239, 243, 244);
   border-width: 2px 2px 0px 2px;
   border-style: solid;
-  /* border-top-width: 2px;
-  border-bottom-width: 2px;
-  border-top-style: solid;
-  border-bottom-style: solid; */
 }
 
 .nav li {
@@ -39,8 +47,8 @@
 @media all and (min-width: 300px) {
   .main {
     background-color: white;
+    overflow-y: auto;
     width: 100dvw; 
-    height: 100dvh;
     flex: 1;
     border-color: rgb(239, 243, 244);
     border-width: 0px 2px 0px 2px;
@@ -56,12 +64,12 @@
 
 }
 
-@media all and (min-width: 767px) {
+@media all and (min-width: 600px) {
   .main {
-    width: 767px;
+    width: 600px;
   }
 
   .bottomSectionWrapper {
-    width: 767px;
+    width: 600px;
   }
 }
