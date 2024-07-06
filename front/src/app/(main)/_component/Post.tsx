@@ -33,7 +33,9 @@ export default function Post() {
     <>
       <div className={style.card}>
         <div className={style.cover}>
-          <img src={target.Images[0]?.link} alt=""/>
+          <Link href={`/${target.User.id}/${target.Images[0].imageId}`}>
+            <img src={target.Images[0]?.link} alt=""/>
+          </Link>
         </div>
         <div className={style.body}>
           <div className={style.meta}>
