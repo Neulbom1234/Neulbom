@@ -18,24 +18,28 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
   height: 100%;
+  width: 100%;
   object-fit: cover; /* 이미지가 요소에 꽉 차도록 설정 */
 }
 
 .body {
   min-width: 0px;
+  margin: 10px;
 }
 
-.title {
+.hairName {
   display: flex;
   font-weight: bold;
-  margin-bottom: 5px;
-
-  text-overflow: ellipsis;
+  margin-bottom: 10px;
 }
 
-.description {
+.hairSalon {
+  text-overflow: ellipsis;
+  font-size: 12px;
+}
+
+.hairSalonAddress {
   color: rgb(170, 170, 170);
   text-overflow: ellipsis;
   font-size: 12px;

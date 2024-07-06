@@ -28,9 +28,6 @@ export default function Post() {
   target.Images.push(
     {imgageId: 1, link: faker.image.urlLoremFlickr()},
   )
-  //card
-  //cover -> img
-  //body -> meta -> title, description
 
   return (
     <>
@@ -40,8 +37,9 @@ export default function Post() {
         </div>
         <div className={style.body}>
           <div className={style.meta}>
-            <div className={style.title}>리프펌</div>
-            <div className={style.description}>쎄임|서울특별시 용산구</div>
+            <div className={style.hairName}>리프펌</div>
+            <div className={style.hairSalon}>블루클럽</div>
+            <div className={style.hairSalonAddress}>서울특별시 용산구</div>
           </div>
         </div>
       </div>

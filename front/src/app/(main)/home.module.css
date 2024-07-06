@@ -43,6 +43,4 @@
 .postsWrapper {
   display: flex;
   flex-wrap: wrap;
-  /* height: 320px; */
-  background-color: aqua;
 }
