@@ -65,6 +65,10 @@
   fill: white;
 }
 
+.heartButton.liked button{
+  fill: #FF0000;
+}
+
 .heartCount {
   display: flex;
   align-items: center;

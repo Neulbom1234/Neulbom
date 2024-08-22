@@ -7,18 +7,26 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/ko';
 import {faker} from '@faker-js/faker';
 import type {Post}  from '../../../model/Post';
-import {useState} from "react";
+import {User} from "@/model/User";
+import {MouseEventHandler, useState} from "react";
+import { InfiniteData, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSession } from 'next-auth/react';
+import cx from "classnames";
+
 
 
 
 type Props = {
   post: Post,
+  user: User
 }
+
 
 dayjs.locale('ko');
 dayjs.extend(relativeTime)
 
 export default function Post({ post }: Props) {
+  const queryClient = useQueryClient();
 
   const target = post;
   const [liked, setLiked] = useState<boolean>(false);
@@ -26,26 +34,222 @@ export default function Post({ post }: Props) {
 
   
 
-  // const onClickHeart = () => {}
-  const onClickHeart = async () => {
-    const apiUrl = `/api/posts/${target.id}/like`;
+  // const onClickHeart = async () => {
+  //   const apiUrl = `/api/posts/${target.id}/like`;
   
-    const response = await fetch(apiUrl, {
-      method: 'POST', 
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      // body: JSON.stringify({ userId: '현재 사용자 ID' }), 
-      body: JSON.stringify(`${target.userName}`), 
-    });
+  //   const response = await fetch(apiUrl, {
+  //     method: 'POST', 
+  //     headers: {
+  //       'Content-Type': 'application/json',
+  //     },
+  //     // body: JSON.stringify({ userId: '현재 사용자 ID' }), 
+  //     body: JSON.stringify(`${target.userName}`), 
+  //   });
 
-    if (response.ok) {
-      setLiked(!liked); 
+  //   if (response.ok) {
+  //     setLiked(!liked); 
+  //   } else {
+  //     console.error('Failed to fetch data');
+  //   }
+  // };
+
+  const heart = useMutation({
+    
+    mutationFn: () => {
+      return fetch(`${process.env.BACKEND_API_SERVER}/like/${post.id}`, {
+        method: 'post',
+        credentials: 'include',
+      });
+    },
+    onMutate(id: number) {
+      const queryCache = queryClient.getQueryCache();
+      const queryKeys = queryCache.getAll().map((cache) => cache.queryKey);
+      console.log('queryKeys', queryKeys); // queryKeys 목록 출력
+      queryKeys.forEach((queryKey) => {
+        if (queryKey[0] === 'posts') { // queryKey의 첫 분류가 'posts'일 경우 getQueryData 함
+          console.log(queryKey[0]);
+  
+          const value: Post | InfiniteData<Post[]> | undefined = queryClient.getQueryData(queryKey);
+          // 인피니트 아닐 경우  const value: Post | Post[] | undefined = queryClient.getQueryData(queryKey);  
+  
+          if (value && 'pages' in value) {  // 배열이며 페이지일 경우
+            console.log('array', value);
+            const obj = value.pages.flat().find((v) => v.id === id); // flat : 2차원 배열을 1차원 배열로 만들어버림
+            if (obj) { // 존재는 하는지 
+              const pageIndex = value.pages.findIndex((page) => page.includes(obj)); // 페이지별로 몇 번째 페이지 인덱스인지
+              const index = value.pages[pageIndex].findIndex((v) => v.id === id); // 찾고자 하는 게시글이 존재하는 경우
+              console.log('found index', index);
+              const shallow = { ...value }; // 얕은 복사
+              value.pages = { ...value.pages }; // 얕은 복사
+              value.pages[pageIndex] = [...value.pages[pageIndex]]; // 얕은 복사
+              shallow.pages[pageIndex][index] = {
+                ...shallow.pages[pageIndex][index],
+                likeCount: shallow.pages[pageIndex][index].likeCount + 1, // likeCount를 숫자로 증가시킴
+              };
+              queryClient.setQueryData(queryKey, shallow);
+            }
+          } else if (value) {
+            // 싱글 포스트인 경우
+            if (value.id === id) {
+              const shallow = {
+                ...value,
+                likeCount: value.likeCount + 1, // likeCount를 숫자로 증가시킴
+              };
+              queryClient.setQueryData(queryKey, shallow);
+            }
+          }
+        }
+      });
+    },
+    onError(id: number) {
+      // unheart의 onMutate 내용과 같음
+      const queryCache = queryClient.getQueryCache();
+      const queryKeys = queryCache.getAll().map((cache) => cache.queryKey);
+      console.log('queryKeys', queryKeys);
+      queryKeys.forEach((queryKey) => {
+        if (queryKey[0] === 'posts') {
+          const value: Post | InfiniteData<Post[]> | undefined = queryClient.getQueryData(queryKey);
+          if (value && 'pages' in value) {
+            console.log('array', value);
+            const obj = value.pages.flat().find((v) => v.id === id);
+            if (obj) {
+              const pageIndex = value.pages.findIndex((page) => page.includes(obj));
+              const index = value.pages[pageIndex].findIndex((v) => v.id === id);
+              console.log('found index', index);
+              const shallow = { ...value };
+              value.pages = { ...value.pages };
+              value.pages[pageIndex] = [...value.pages[pageIndex]];
+              shallow.pages[pageIndex][index] = {
+                ...shallow.pages[pageIndex][index],
+                likeCount: shallow.pages[pageIndex][index].likeCount - 1, // likeCount를 숫자로 감소시킴
+              };
+              queryClient.setQueryData(queryKey, shallow);
+            }
+          } else if (value) {
+            // 싱글 포스트인 경우
+            if (value.id === id) {
+              const shallow = {
+                ...value,
+                likeCount: value.likeCount - 1, // likeCount를 숫자로 감소시킴
+              };
+              queryClient.setQueryData(queryKey, shallow);
+            }
+          }
+        }
+      });
+    },
+    onSettled() {
+      //최종적으로 'posts'가 들어가는 것들 업데이트 -> 필요없으면 내용 제외해도 되는 거임~
+      // queryClient.invalidateQueries({
+      //   queryKey: ['posts']
+      // })
+    },
+  });
+
+
+
+  const unheart = useMutation({
+    mutationFn: () => {
+      return fetch(`${process.env.BACKEND_API_SERVER}/`, { //api 물어보고 적기
+        method: 'delete',
+        credentials: 'include',
+      })
+    },
+    onMutate(id: number) {
+      const queryCache = queryClient.getQueryCache();
+      const queryKeys = queryCache.getAll().map((cache) => cache.queryKey);
+      console.log('queryKeys', queryKeys); // queryKeys 목록 출력
+      queryKeys.forEach((queryKey) => {
+        if (queryKey[0] === 'posts') { // queryKey의 첫 분류가 'posts'일 경우 getQueryData 함
+          console.log(queryKey[0]);
+  
+          const value: Post | InfiniteData<Post[]> | undefined = queryClient.getQueryData(queryKey);
+          // 인피니트 아닐 경우  const value: Post | Post[] | undefined = queryClient.getQueryData(queryKey);  
+  
+          if (value && 'pages' in value) {  // 배열이며 페이지일 경우
+            console.log('array', value);
+            const obj = value.pages.flat().find((v) => v.id === id); // flat : 2차원 배열을 1차원 배열로 만들어버림
+            if (obj) { // 존재는 하는지 
+              const pageIndex = value.pages.findIndex((page) => page.includes(obj)); // 페이지별로 몇 번째 페이지 인덱스인지
+              const index = value.pages[pageIndex].findIndex((v) => v.id === id); // 찾고자 하는 게시글이 존재하는 경우
+              console.log('found index', index);
+              const shallow = { ...value }; // 얕은 복사
+              value.pages = { ...value.pages }; // 얕은 복사
+              value.pages[pageIndex] = [...value.pages[pageIndex]]; // 얕은 복사
+              shallow.pages[pageIndex][index] = {
+                ...shallow.pages[pageIndex][index],
+                likeCount: shallow.pages[pageIndex][index].likeCount + 1, // likeCount를 숫자로 증가
+              };
+              queryClient.setQueryData(queryKey, shallow);
+            }
+          } else if (value) {
+            // 싱글 포스트인 경우
+            if (value.id === id) {
+              const shallow = {
+                ...value,
+                likeCount: value.likeCount + 1, // likeCount를 숫자로 증가
+              };
+              queryClient.setQueryData(queryKey, shallow);
+            }
+          }
+        }
+      });
+    },
+    onError(id: number) {
+      const queryCache = queryClient.getQueryCache();
+      const queryKeys = queryCache.getAll().map((cache) => cache.queryKey);
+      console.log('queryKeys', queryKeys); // queryKeys 목록 출력
+      queryKeys.forEach((queryKey) => {
+        if (queryKey[0] === 'posts') { // queryKey의 첫 분류가 'posts'일 경우 getQueryData 함
+          console.log(queryKey[0]);
+  
+          const value: Post | InfiniteData<Post[]> | undefined = queryClient.getQueryData(queryKey);
+          // 인피니트 아닐 경우  const value: Post | Post[] | undefined = queryClient.getQueryData(queryKey);  
+  
+          if (value && 'pages' in value) {  // 배열이며 페이지일 경우
+            console.log('array', value);
+            const obj = value.pages.flat().find((v) => v.id === id); // flat : 2차원 배열을 1차원 배열로 만들어버림
+            if (obj) { // 존재는 하는지 
+              const pageIndex = value.pages.findIndex((page) => page.includes(obj)); // 페이지별로 몇 번째 페이지 인덱스인지
+              const index = value.pages[pageIndex].findIndex((v) => v.id === id); // 찾고자 하는 게시글이 존재하는 경우
+              console.log('found index', index);
+              const shallow = { ...value }; // 얕은 복사
+              value.pages = { ...value.pages }; // 얕은 복사
+              value.pages[pageIndex] = [...value.pages[pageIndex]]; // 얕은 복사
+              shallow.pages[pageIndex][index] = {
+                ...shallow.pages[pageIndex][index],
+                likeCount: shallow.pages[pageIndex][index].likeCount + 1, // likeCount를 숫자로 증가시킴
+              };
+              queryClient.setQueryData(queryKey, shallow);
+            }
+          } else if (value) {
+            // 싱글 포스트인 경우
+            if (value.id === id) {
+              const shallow = {
+                ...value,
+                likeCount: value.likeCount + 1, // likeCount를 숫자로 증가시킴
+              };
+              queryClient.setQueryData(queryKey, shallow);
+            }
+          }
+        }
+      });
+    },
+    onSettled() {
+
+    },
+  })  
+
+
+
+  const onClickHeart: MouseEventHandler<HTMLButtonElement> = (e) => {
+    e.stopPropagation(); //좋아요 클릭 시에 상세 페이지 이동 막음
+    if (liked) {
+      unheart.mutate(post.id);
     } else {
-      console.error('Failed to fetch data');
+      heart.mutate(post.id);
     }
-  };
-
+  }
 
   return (
     <>
@@ -62,7 +266,7 @@ export default function Post({ post }: Props) {
             {/* <img src={faker.image.urlLoremFlickr()} alt="" /> */}
           </Link>
 
-          <div className={style.heartButton}>
+          <div className={cx(style.heartButton, liked && style.liked)}>
             <button onClick={onClickHeart}>
               {liked ?
                 <svg width={30} viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
