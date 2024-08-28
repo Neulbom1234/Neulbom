@@ -7,7 +7,8 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/ko';
 import {faker} from '@faker-js/faker';
 import type {Post}  from '../../../model/Post';
-import {useState} from "react";
+import {MouseEventHandler, useState} from "react";
+import { InfiniteData, useMutation, useQueryClient } from '@tanstack/react-query';
 
 
 
@@ -24,26 +25,184 @@ export default function Post({ post }: Props) {
   const [liked, setLiked] = useState<boolean>(false);
   // const liked = false;
 
-  // const onClickHeart = () => {}
-  const onClickHeart = async () => {
-    const apiUrl = `/api/posts/${target.id}/like`;
+  const heart = useMutation({
+    mutationFn: () => {
+      return fetch(`${process.env.BACKEND_API_SERVER}/photo/like/${post}/likes`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    },
+    onMutate(id: number) {
+      const queryClient = useQueryClient();
+      const queryCache = queryClient.getQueryCache();
+      const queryKeys = queryCache.getAll().map((cache: { queryKey: any; }) => cache.queryKey);
+
+      setLiked(true);
+      console.log(liked);
+      queryKeys.forEach((queryKey: string[]) => {
+        if (queryKey[0] === 'posts') {
+          const value: Post | InfiniteData<Post[]> | undefined = queryClient.getQueryData(queryKey);
+          
+          if (value && 'pages' in value) {
+            const obj = value.pages.flat().find((v) => v.id === id);
+            if (obj) {
+              const pageIndex = value.pages.findIndex((page) => page.includes(obj));
+              const index = value.pages[pageIndex].findIndex((v) => v.id === id);
+              const shallow = { ...value };
+              value.pages = { ...value.pages };
+              value.pages[pageIndex] = [...value.pages[pageIndex]];
+              shallow.pages[pageIndex][index] = {
+                ...shallow.pages[pageIndex][index],
+                likeCount: shallow.pages[pageIndex][index].likeCount + 1,
+              };
+              
+              queryClient.setQueryData(queryKey, shallow);
+            }
+          } else if (value) {
+            if (value.id === id) {
+              const shallow = {
+                ...value,
+                likeCount: value.likeCount + 1,
+              };
+              queryClient.setQueryData(queryKey, shallow);
+            }
+          }
+        }
+      });
+    },
+    onError(id: number) {
+      const queryClient = useQueryClient();
+      const queryCache = queryClient.getQueryCache();
+      const queryKeys = queryCache.getAll().map((cache) => cache.queryKey);
   
-    const response = await fetch(apiUrl, {
-      method: 'POST', 
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      // body: JSON.stringify({ userId: '현재 사용자 ID' }), 
-      body: JSON.stringify(`${target.userName}`), 
-    });
+      queryKeys.forEach((queryKey) => {
+        if (queryKey[0] === 'posts') {
+          const value: Post | InfiniteData<Post[]> | undefined = queryClient.getQueryData(queryKey);
+          
+          if (value && 'pages' in value) {
+            const obj = value.pages.flat().find((v) => v.id === id);
+            if (obj) {
+              const pageIndex = value.pages.findIndex((page) => page.includes(obj));
+              const index = value.pages[pageIndex].findIndex((v) => v.id === id);
+              const shallow = { ...value };
+              value.pages = { ...value.pages };
+              value.pages[pageIndex] = [...value.pages[pageIndex]];
+              shallow.pages[pageIndex][index] = {
+                ...shallow.pages[pageIndex][index],
+                likeCount: shallow.pages[pageIndex][index].likeCount - 1,
+              };
+              queryClient.setQueryData(queryKey, shallow);
+            }
+          } else if (value) {
+            if (value.id === id) {
+              const shallow = {
+                ...value,
+                likeCount: value.likeCount - 1,
+              };
+              queryClient.setQueryData(queryKey, shallow);
+            }
+          }
+        }
+      });
+    },
+    onSettled() {
+      // const queryClient = useQueryClient();
+      // queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+  
+  const unheart = useMutation({
+    mutationFn: () => {
+      return fetch(`${process.env.BACKEND_API_SERVER}/photo/like/${post.id}/likes`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    },
+    onMutate(id: number) {
+      const queryClient = useQueryClient();
+      const queryCache = queryClient.getQueryCache();
+      const queryKeys = queryCache.getAll().map((cache) => cache.queryKey);
+      setLiked(false);
+      queryKeys.forEach((queryKey) => {
+        if (queryKey[0] === 'posts') {
+          const value: Post | InfiniteData<Post[]> | undefined = queryClient.getQueryData(queryKey);
+          
+          if (value && 'pages' in value) {
+            const obj = value.pages.flat().find((v) => v.id === id);
+            if (obj) {
+              const pageIndex = value.pages.findIndex((page) => page.includes(obj));
+              const index = value.pages[pageIndex].findIndex((v) => v.id === id);
+              const shallow = { ...value };
+              value.pages = { ...value.pages };
+              value.pages[pageIndex] = [...value.pages[pageIndex]];
+              shallow.pages[pageIndex][index] = {
+                ...shallow.pages[pageIndex][index],
+                likeCount: shallow.pages[pageIndex][index].likeCount - 1,
+              };
+              queryClient.setQueryData(queryKey, shallow);
+            }
+          } else if (value) {
+            if (value.id === id) {
+              const shallow = {
+                ...value,
+                likeCount: value.likeCount - 1,
+              };
+              queryClient.setQueryData(queryKey, shallow);
+            }
+          }
+        }
+      });
+    },
+    onError(id: number) {
+      const queryClient = useQueryClient();
+      const queryCache = queryClient.getQueryCache();
+      const queryKeys = queryCache.getAll().map((cache) => cache.queryKey);
+  
+      queryKeys.forEach((queryKey) => {
+        if (queryKey[0] === 'posts') {
+          const value: Post | InfiniteData<Post[]> | undefined = queryClient.getQueryData(queryKey);
+          
+          if (value && 'pages' in value) {
+            const obj = value.pages.flat().find((v) => v.id === id);
+            if (obj) {
+              const pageIndex = value.pages.findIndex((page) => page.includes(obj));
+              const index = value.pages[pageIndex].findIndex((v) => v.id === id);
+              const shallow = { ...value };
+              value.pages = { ...value.pages };
+              value.pages[pageIndex] = [...value.pages[pageIndex]];
+              shallow.pages[pageIndex][index] = {
+                ...shallow.pages[pageIndex][index],
+                likeCount: shallow.pages[pageIndex][index].likeCount + 1,
+              };
+              queryClient.setQueryData(queryKey, shallow);
+            }
+          } else if (value) {
+            if (value.id === id) {
+              const shallow = {
+                ...value,
+                likeCount: value.likeCount + 1,
+              };
+              queryClient.setQueryData(queryKey, shallow);
+            }
+          }
+        }
+      });
+    },
+    onSettled() {
+      // const queryClient = useQueryClient();
+      // queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+  
 
-    if (response.ok) {
-      setLiked(!liked); 
-    } else {
-      console.error('Failed to fetch data');
+    const onClickHeart: MouseEventHandler<HTMLButtonElement> = (e) => {
+      e.stopPropagation();
+      if (liked) {
+        unheart.mutate(target.id);
+      } else {
+        heart.mutate(target.id);
+      }
     }
-  };
-
 
   return (
     <>
@@ -52,12 +211,6 @@ export default function Post({ post }: Props) {
         <div className={style.cover}>
           <Link href={`/${target.userName}/${target.id}`}>
             <img src={target.photoImagePath[0]} alt=""/>             
-
-            {/* 제로초 아저씨가 알려준 rewrites 써봄! */}
-            {/* <img src={`/images/${target.photoImagePath[0]}`} alt=""/>  */}
-            
-
-            {/* <img src={faker.image.urlLoremFlickr()} alt="" /> */}
           </Link>
 
           <div className={style.heartButton}>
