@@ -8,7 +8,7 @@ export interface Post {
   id: number;
   userName: string;
   photoImagePath: string[];
-  likes: string[];
+  likes: User[];
   likeCount:number;
   hairName: string;
   text: string;
