@@ -7,33 +7,40 @@ import { useRouter } from 'next/navigation';
 import { Post } from '@/model/Post';
 import { InfiniteData, useMutation, useQueryClient } from '@tanstack/react-query';
 
+// JWT 토큰 파싱 함수
+function parseJwt(token: string) {
+  const base64Url = token.split('.')[1];
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  const jsonPayload = decodeURIComponent(
+    atob(base64)
+      .split('')
+      .map(c => `%${('00' + c.charCodeAt(0).toString(16)).slice(-2)}`)
+      .join('')
+  );
+  return JSON.parse(jsonPayload);
+}
+
+// JWT에서 loginId 추출 함수
+function getLoginIdFromToken(): string | null {
+  const token = localStorage.getItem('accessToken'); // localStorage에 JWT 토큰 저장되어 있다고 가정
+  if (!token) return null;
+
+  const decodedToken = parseJwt(token);
+  return decodedToken?.loginId || null; // JWT에서 loginId 추출
+}
+
 type Props = {
   post: Post;
 };
 
 export default function Header({ post }: Props) {
   const [liked, setLiked] = useState(false); // 좋아요 상태
-  const [likeCount, setLikeCount] = useState(post.likeCount); // 좋아요 수
+  const [likeCount, setLikeCount] = useState<number>(post.likeCount); // 좋아요 수
   const [currentUser, setCurrentUser] = useState<string | null>(null); // 로그인된 사용자 ID
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  // 현재 로그인한 사용자의 정보
-  const fetchCurrentUser = async () => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_SERVER}/api/current-user`, {
-      method: 'GET',
-      credentials: 'include', // 세션 쿠키를 함께 전송
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch current user');
-    }
-
-    const user = await response.json();
-    return user.loginId; // 로그인한 사용자의 id 반환
-  };
-
-  // 사용자가 해당 게시글에 좋아요 눌렀는지 확인
+  // 서버에서 좋아요 목록을 불러오는 함수
   const fetchLikes = async (loginId: string) => {
     const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_SERVER}/photo/find/${post.id}/likes`, {
       method: 'GET',
@@ -52,48 +59,41 @@ export default function Header({ post }: Props) {
   };
 
   useEffect(() => {
-    // 컴포넌트가 마운트될 때 현재 로그인한 사용자 정보를 가져오고, 좋아요 상태를 확인
-    fetchCurrentUser()
-      .then((loginId) => {
-        setCurrentUser(loginId);
-        return fetchLikes(loginId); // 좋아요 상태 확인
-      })
-      .catch((error) => console.error('Error fetching current user or likes:', error));
+    const loginId = getLoginIdFromToken(); // JWT에서 로그인 ID를 추출
+    if (loginId) {
+      setCurrentUser(loginId);
+      fetchLikes(loginId); // 로그인 ID를 사용해 좋아요 상태 확인
+    }
   }, []);
 
-  // 서버에 좋아요 상태 변경 요청 전송
+  // 서버 요청을 보내는 mutation
   const updateLikeCount = (isLike: boolean) => {
-    if (!process.env.NEXT_PUBLIC_BACKEND_API_SERVER) {
-      throw new Error('NEXT_PUBLIC_BACKEND_API_SERVER environment variable is not set');
-    }
-
-    if (!post.id) {
-      throw new Error('Post ID is not defined');
-    }
     const url = `${process.env.NEXT_PUBLIC_BACKEND_API_SERVER}/photo/find/${post.id}/likes`;
-
+    console.log(url);
     return fetch(url, {
-      method: 'GET',
-      credentials: 'include', // 세션 쿠키 포함
+      method: isLike ? 'POST' : 'DELETE',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ isLike }), // 서버에 isLike 플래그를 전송
-    }).then((response) => {
+      body: JSON.stringify({ isLike }),
+    }).then((response) =>{ 
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
       return response.json();
     });
   };
+  
 
-  // 좋아요 눌렀을 경우
+  // 좋아요 처리 mutation
   const likeMutation = useMutation({
     mutationFn: () => updateLikeCount(true),
     onMutate: () => {
       setLiked(true);
       setLikeCount((prev) => prev + 1);
 
+      // optimistic update
       queryClient.setQueryData(['posts'], (oldData: InfiniteData<Post[]> | undefined) => {
         if (oldData) {
           const updatedPages = oldData.pages.map((page) =>
@@ -109,20 +109,24 @@ export default function Header({ post }: Props) {
       });
     },
     onError: () => {
-      console.error('Error occurred while liking the post');
+    // 좋아요 실패 시 롤백
+    setLiked(false);
+    setLikeCount((prev) => prev - 1);
+    console.error('Error occurred while liking the post'); 
     },
     onSettled: () => {
+      // 서버에서 데이터 갱신
       queryClient.invalidateQueries({ queryKey: ['posts'] });
     },
   });
 
-  // 좋아요 취소했을 경우
   const unlikeMutation = useMutation({
     mutationFn: () => updateLikeCount(false),
     onMutate: () => {
       setLiked(false);
       setLikeCount((prev) => prev - 1);
 
+      // Optimistic update
       queryClient.setQueryData(['posts'], (oldData: InfiniteData<Post[]> | undefined) => {
         if (oldData) {
           const updatedPages = oldData.pages.map((page) =>
@@ -138,14 +142,17 @@ export default function Header({ post }: Props) {
       });
     },
     onError: () => {
-      console.error('Error occurred while unliking the post');
+      // 좋아요 취소 실패 시 롤백
+      setLiked(true);
+      setLikeCount((prev) => prev + 1);
+      console.error('Error occurred while unliking the post');    
     },
     onSettled: () => {
+      // 서버에서 데이터 갱신
       queryClient.invalidateQueries({ queryKey: ['posts'] });
     },
   });
 
-  // 핸들러
   const handleHeartClick: React.MouseEventHandler<HTMLButtonElement> = (e) => {
     e.stopPropagation();
     if (liked) {
